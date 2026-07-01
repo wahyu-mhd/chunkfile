@@ -1,8 +1,11 @@
-from app.database import init_database
+from app.database import Base, engine
+from app import models  # noqa: F401
 
 
-def main() -> None:
-    init_database()
+def main():
+    print("Creating database tables...")
+    Base.metadata.create_all(bind=engine)
+    print("Done.")
 
 
 if __name__ == "__main__":
