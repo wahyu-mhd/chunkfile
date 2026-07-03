@@ -1,34 +1,50 @@
-from typing import Any
+import base64
+import os
+from dataclasses import dataclass
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+from app.config import settings
 
 
-def derive_aes_key(secret: str) -> bytes:
-    ...
+@dataclass
+class EncryptedChunk:
+    nonce: bytes
+    ciphertext: bytes
 
 
-def encrypt_chunk(plaintext: bytes, secret: str) -> tuple[bytes, str]:
-    ...
+def load_master_key() -> bytes:
+    key = base64.b64decode(settings.master_encryption_key_base64)
+
+    if len(key) != 32:
+        raise ValueError("MASTER_ENCRYPTION_KEY_BASE64 must decode to 32 bytes")
+
+    return key
 
 
-def decrypt_chunk(ciphertext: bytes, nonce: str, secret: str) -> bytes:
-    ...
+def encrypt_chunk(plaintext: bytes, key: bytes) -> EncryptedChunk:
+    nonce = os.urandom(12)
+    aesgcm = AESGCM(key)
+
+    ciphertext = aesgcm.encrypt(
+        nonce=nonce,
+        data=plaintext,
+        associated_data=None,
+    )
+
+    return EncryptedChunk(
+        nonce=nonce,
+        ciphertext=ciphertext,
+    )
 
 
-def hash_password(password: str) -> str:
-    ...
+def decrypt_chunk(ciphertext: bytes, nonce: bytes, key: bytes) -> bytes:
+    aesgcm = AESGCM(key)
 
+    plaintext = aesgcm.decrypt(
+        nonce=nonce,
+        data=ciphertext,
+        associated_data=None,
+    )
 
-def verify_password(password: str, stored_hash: str) -> bool:
-    ...
-
-
-def create_session_token(
-    user_id: int,
-    username: str,
-    secret: str,
-    ttl_seconds: int,
-) -> str:
-    ...
-
-
-def decode_session_token(token: str, secret: str) -> dict[str, Any] | None:
-    ...
+    return plaintext
