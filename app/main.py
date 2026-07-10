@@ -13,4 +13,5 @@ def root():
         "message": "ChunkVault API is running",
         "docs": "/docs",
         "health": "/health",
+        "files":"/files",
     }
