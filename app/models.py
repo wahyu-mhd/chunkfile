@@ -40,48 +40,48 @@ class User(Base):
 class StoredFile(Base):
     __tablename__ = "files"
 
-    i= mapped_column(
+    id= mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
     )
 
-    user_i= mapped_column(
+    user_id= mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    original_filenam= mapped_column(
+    original_filename= mapped_column(
         Text,
         nullable=False,
     )
 
-    size_byte= mapped_column(
+    size_bytes= mapped_column(
         BigInteger,
         nullable=False,
     )
 
-    mime_typ = mapped_column(
+    mime_type = mapped_column(
         Text,
         nullable=True,
     )
 
-    statu= mapped_column(
+    status= mapped_column(
         String(20),
         nullable=False,
         default="uploading",
         index=True,
     )
 
-    created_a= mapped_column(
+    created_at= mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
 
-    updated_a= mapped_column(
+    updated_at= mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),

@@ -3,11 +3,14 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
+
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.core.chunker import iter_file_chunks
-from app.core.crypto import encrypt_chunk, load_master_key
+from app.core.crypto import encrypt_chunk, load_master_key, decrypt_chunk
 from app.core.hasher import sha256_bytes
 from app.core.storage_b2 import B2Storage
 from app.database import get_db
@@ -34,6 +37,12 @@ def get_or_create_dev_user(db: Session) -> User:
 
     return user
 
+def cleanup_temp_file(path: Path) -> None:
+    try:
+        if path.exists():
+            path.unlink()
+    except Exception:
+        pass
 
 def save_to_staging(upload_file: UploadFile) -> Path:
     staging_dir = Path("data/staging")
@@ -160,16 +169,102 @@ def upload_file(
             staging_path.unlink()
 
 
-@router.get("", response_model=list[FileRead])
-def list_files(db: Session = Depends(get_db)):
+# @router.get("", response_model=list[FileRead])
+# def list_files(db: Session = Depends(get_db)):
+#     user = get_or_create_dev_user(db)
+
+#     files = (
+#         db.query(StoredFile)
+#         .filter(StoredFile.user_id == user.id)
+#         .filter(StoredFile.status != "deleted")
+#         .order_by(StoredFile.created_at.desc())
+#         .all()
+#     )
+
+#     return files
+
+@router.get("/{file_id}/download")
+def download_file(
+    file_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
     user = get_or_create_dev_user(db)
 
-    files = (
+    stored_file = (
         db.query(StoredFile)
+        .filter(StoredFile.id == file_id)
         .filter(StoredFile.user_id == user.id)
-        .filter(StoredFile.status != "deleted")
-        .order_by(StoredFile.created_at.desc())
+        .filter(StoredFile.status == "ready")
+        .first()
+    )
+
+    if stored_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        )
+
+    chunks = (
+        db.query(Chunk)
+        .filter(Chunk.file_id == stored_file.id)
+        .order_by(Chunk.chunk_index.asc())
         .all()
     )
 
-    return files
+    if not chunks:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No chunks found for this file",
+        )
+
+    temp_dir = Path("data/temp_restore")
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = Path(stored_file.original_filename).name
+    output_path = temp_dir / f"{uuid.uuid4()}-{safe_name}"
+
+    key = load_master_key()
+    storage = B2Storage()
+
+    try:
+        with output_path.open("wb") as output_file:
+            for chunk in chunks:
+                encrypted_bytes = storage.download_bytes(chunk.object_key)
+
+                current_hash = sha256_bytes(encrypted_bytes)
+
+                if current_hash != chunk.sha256_encrypted:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=(
+                            "Chunk integrity check failed "
+                            f"at chunk index {chunk.chunk_index}"
+                        ),
+                    )
+
+                plaintext_bytes = decrypt_chunk(
+                    ciphertext=encrypted_bytes,
+                    nonce=chunk.nonce,
+                    key=key,
+                )
+
+                output_file.write(plaintext_bytes)
+
+        return FileResponse(
+            path=output_path,
+            filename=stored_file.original_filename,
+            media_type=stored_file.mime_type or "application/octet-stream",
+            background=BackgroundTask(cleanup_temp_file, output_path),
+        )
+
+    except HTTPException:
+        cleanup_temp_file(output_path)
+        raise
+
+    except Exception as error:
+        cleanup_temp_file(output_path)
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Download failed: {error}",
+        ) from error
