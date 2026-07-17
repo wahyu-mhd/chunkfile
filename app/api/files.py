@@ -14,11 +14,26 @@ from app.core.crypto import encrypt_chunk, load_master_key, decrypt_chunk
 from app.core.hasher import sha256_bytes
 from app.core.storage_b2 import B2Storage
 from app.database import get_db
-from app.models import Chunk, StoredFile, User
+from app.models import Chunk, StoredFile, User, AuditLog
 from app.schemas import FileRead
 
 router = APIRouter(prefix="/files", tags=["files"])
 
+def add_audit_log(
+    db: Session,
+    action: str,
+    user_id=None,
+    file_id=None,
+    message: str | None = None,
+):
+    log = AuditLog(
+        user_id=user_id,
+        file_id=file_id,
+        action=action,
+        message=message,
+    )
+
+    db.add(log)
 
 def get_or_create_dev_user(db: Session) -> User:
     user = db.query(User).filter(User.username == "dev").first()
@@ -131,6 +146,13 @@ def upload_file(
             db.add(chunk)
 
         stored_file.status = "ready"
+        add_audit_log(
+            db=db,
+            action="file_uploaded",
+            user_id=user.id,
+            file_id=stored_file.id,
+            message=f"Uploaded {stored_file.original_filename}",
+        )
 
         db.commit()
         db.refresh(stored_file)
@@ -249,7 +271,16 @@ def download_file(
                 )
 
                 output_file.write(plaintext_bytes)
+        
+        add_audit_log(
+            db=db,
+            action="file_downloaded",
+            user_id=user.id,
+            file_id=stored_file.id,
+            message=f"Downloaded {stored_file.original_filename}",
+        )
 
+        db.commit()
         return FileResponse(
             path=output_path,
             filename=stored_file.original_filename,
@@ -268,3 +299,88 @@ def download_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Download failed: {error}",
         ) from error
+    
+@router.delete("/{file_id}")
+def delete_file(
+    file_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    user = get_or_create_dev_user(db)
+
+    stored_file = (
+        db.query(StoredFile)
+        .filter(StoredFile.id == file_id)
+        .filter(StoredFile.user_id == user.id)
+        .filter(StoredFile.status != "deleted")
+        .first()
+    )
+
+    if stored_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        )
+
+    chunks = (
+        db.query(Chunk)
+        .filter(Chunk.file_id == stored_file.id)
+        .order_by(Chunk.chunk_index.asc())
+        .all()
+    )
+
+    storage = B2Storage()
+
+    try:
+        for chunk in chunks:
+            storage.delete_object(chunk.object_key)
+
+        stored_file.status = "deleted"
+
+        add_audit_log(
+            db=db,
+            action="file_deleted",
+            user_id=user.id,
+            file_id=stored_file.id,
+            message=f"Deleted {stored_file.original_filename}",
+        )
+
+        db.commit()
+
+        return {
+            "status": "deleted",
+            "file_id": stored_file.id,
+            "filename": stored_file.original_filename,
+            "chunks_deleted": len(chunks),
+        }
+
+    except Exception as error:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Delete failed: {error}",
+        ) from error
+    
+
+@router.get("/audit/recent")
+def recent_audit_logs(db: Session = Depends(get_db)):
+    user = get_or_create_dev_user(db)
+
+    logs = (
+        db.query(AuditLog)
+        .filter(AuditLog.user_id == user.id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    return [
+        {
+            "id": log.id,
+            "action": log.action,
+            "file_id": log.file_id,
+            "message": log.message,
+            "created_at": log.created_at,
+        }
+        for log in logs
+    ]
