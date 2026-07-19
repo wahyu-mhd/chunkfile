@@ -191,19 +191,19 @@ def upload_file(
             staging_path.unlink()
 
 
-# @router.get("", response_model=list[FileRead])
-# def list_files(db: Session = Depends(get_db)):
-#     user = get_or_create_dev_user(db)
+@router.get("", response_model=list[FileRead])
+def list_files(db: Session = Depends(get_db)):
+    user = get_or_create_dev_user(db)
 
-#     files = (
-#         db.query(StoredFile)
-#         .filter(StoredFile.user_id == user.id)
-#         .filter(StoredFile.status != "deleted")
-#         .order_by(StoredFile.created_at.desc())
-#         .all()
-#     )
+    files = (
+        db.query(StoredFile)
+        .filter(StoredFile.user_id == user.id)
+        .filter(StoredFile.status != "deleted")
+        .order_by(StoredFile.created_at.desc())
+        .all()
+    )
 
-#     return files
+    return files
 
 @router.get("/{file_id}/download")
 def download_file(
