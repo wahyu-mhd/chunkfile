@@ -8,7 +8,7 @@ pydantic-settings
 python-dotenv
 boto3
 cryptography
-passlib[bcrypt]
+passlib[argon2]
 python-jose[cryptography]
 jinja2
 pytest

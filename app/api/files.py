@@ -16,6 +16,7 @@ from app.core.storage_b2 import B2Storage
 from app.database import get_db
 from app.models import Chunk, StoredFile, User, AuditLog
 from app.schemas import FileRead
+from app.api.auth import get_current_user
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -80,8 +81,8 @@ def build_object_key(user_id, file_id, chunk_index: int) -> str:
 def upload_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    user = Depends(get_current_user)
 ):
-    user = get_or_create_dev_user(db)
     staging_path = save_to_staging(file)
     uploaded_object_keys: list[str] = []
 
@@ -192,8 +193,7 @@ def upload_file(
 
 
 @router.get("", response_model=list[FileRead])
-def list_files(db: Session = Depends(get_db)):
-    user = get_or_create_dev_user(db)
+def list_files(db: Session = Depends(get_db), user = Depends(get_current_user)):
 
     files = (
         db.query(StoredFile)
@@ -209,8 +209,8 @@ def list_files(db: Session = Depends(get_db)):
 def download_file(
     file_id: uuid.UUID,
     db: Session = Depends(get_db),
+    user = Depends(get_current_user),
 ):
-    user = get_or_create_dev_user(db)
 
     stored_file = (
         db.query(StoredFile)
@@ -304,8 +304,8 @@ def download_file(
 def delete_file(
     file_id: uuid.UUID,
     db: Session = Depends(get_db),
+    user = Depends(get_current_user)
 ):
-    user = get_or_create_dev_user(db)
 
     stored_file = (
         db.query(StoredFile)
@@ -363,8 +363,8 @@ def delete_file(
     
 
 @router.get("/audit/recent")
-def recent_audit_logs(db: Session = Depends(get_db)):
-    user = get_or_create_dev_user(db)
+def recent_audit_logs(db: Session = Depends(get_db), user = Depends(get_current_user)):
+    
 
     logs = (
         db.query(AuditLog)

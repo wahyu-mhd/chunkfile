@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 
-from app.api import health
-from app.api import files
+from app.api import auth, files, health
 
 app = FastAPI(title="ChunkVault")
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(files.router)
 
 
@@ -15,5 +15,6 @@ def root():
         "message": "ChunkVault API is running",
         "docs": "/docs",
         "health": "/health",
-        "files":"/files",
+        "auth": "/auth",
+        "files": "/files",
     }
