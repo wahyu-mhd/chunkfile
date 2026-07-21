@@ -2,7 +2,7 @@ import shutil
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Request
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
@@ -17,8 +17,33 @@ from app.database import get_db
 from app.models import Chunk, StoredFile, User, AuditLog
 from app.schemas import FileRead
 from app.api.auth import get_current_user
+import time
 
 router = APIRouter(prefix="/files", tags=["files"])
+
+upload_attempts: dict[str, list[float]] = {}
+
+
+def check_upload_rate_limit(user_id) -> None:
+    now = time.time()
+    window_seconds = 60
+    window_start = now - window_seconds
+
+    key = str(user_id)
+
+    attempts = upload_attempts.get(key, [])
+    attempts = [attempt for attempt in attempts if attempt >= window_start]
+
+    if len(attempts) >= settings.uploads_per_minute:
+        upload_attempts[key] = attempts
+
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Upload limit reached. Max {settings.uploads_per_minute} uploads per minute.",
+        )
+
+    attempts.append(now)
+    upload_attempts[key] = attempts
 
 def add_audit_log(
     db: Session,
@@ -36,22 +61,22 @@ def add_audit_log(
 
     db.add(log)
 
-def get_or_create_dev_user(db: Session) -> User:
-    user = db.query(User).filter(User.username == "dev").first()
+# def get_or_create_dev_user(db: Session) -> User:
+#     user = db.query(User).filter(User.username == "dev").first()
 
-    if user is not None:
-        return user
+#     if user is not None:
+#         return user
 
-    user = User(
-        username="dev",
-        password_hash="dev-only-not-production",
-    )
+#     user = User(
+#         username="dev",
+#         password_hash="dev-only-not-production",
+#     )
 
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+#     db.add(user)
+#     db.commit()
+#     db.refresh(user)
 
-    return user
+#     return user
 
 def cleanup_temp_file(path: Path) -> None:
     try:
@@ -83,6 +108,7 @@ def upload_file(
     db: Session = Depends(get_db),
     user = Depends(get_current_user)
 ):
+    check_upload_rate_limit(user.id)
     staging_path = save_to_staging(file)
     uploaded_object_keys: list[str] = []
 
@@ -101,6 +127,17 @@ def upload_file(
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"File is larger than {settings.max_upload_mb} MB",
+            )
+        chunk_size = settings.chunk_size_mb * 1024 * 1024
+        estimated_chunks = (file_size + chunk_size - 1) // chunk_size
+
+        if estimated_chunks > settings.max_chunks_per_file:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=(
+                    f"File would create {estimated_chunks} chunks, "
+                    f"but max allowed is {settings.max_chunks_per_file}"
+                ),
             )
 
         stored_file = StoredFile(

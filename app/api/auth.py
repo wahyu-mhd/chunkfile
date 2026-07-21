@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -11,6 +11,7 @@ from app.config import settings
 from app.database import get_db
 from app.models import User
 from app.schemas import TokenRead, UserCreate, UserRead
+import time
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -21,6 +22,37 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
+failed_login_attempts: dict[str, list[float]] = {}
+
+
+def get_client_ip(request) -> str:
+    if request.client is None:
+        return "unknown"
+
+    return request.client.host
+
+
+def is_login_blocked(key: str) -> bool:
+    now = time.time()
+    window_start = now - settings.failed_login_window_seconds
+
+    attempts = failed_login_attempts.get(key, [])
+    attempts = [attempt for attempt in attempts if attempt >= window_start]
+    failed_login_attempts[key] = attempts
+
+    return len(attempts) >= settings.failed_login_limit
+
+
+def record_failed_login(key: str) -> None:
+    now = time.time()
+
+    attempts = failed_login_attempts.get(key, [])
+    attempts.append(now)
+    failed_login_attempts[key] = attempts
+
+
+def clear_failed_logins(key: str) -> None:
+    failed_login_attempts.pop(key, None)
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -114,9 +146,18 @@ def register_user(
 
 @router.post("/login", response_model=TokenRead)
 def login_user(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    client_ip = get_client_ip(request)
+    login_key = f"{client_ip}:{form_data.username}"
+
+    if is_login_blocked(login_key):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Try again later.",
+        )
     user = (
         db.query(User)
         .filter(User.username == form_data.username)
@@ -127,11 +168,12 @@ def login_user(
         form_data.password,
         user.password_hash,
     ):
+        record_failed_login(login_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
-
+    clear_failed_logins(login_key)
     token = create_access_token(user)
 
     return {

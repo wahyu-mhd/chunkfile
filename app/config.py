@@ -9,12 +9,16 @@ class Settings(BaseSettings):
 
     chunk_size_mb: int = 4
     max_upload_mb: int = 250
+    max_chunks_per_file: int = 200
+    uploads_per_minute: int = 5
+    failed_login_limit: int = 5
+    failed_login_window_seconds: int = 300
 
-    b2_endpoint_url: str = "replace_later"
-    b2_region: str = "replace_later"
-    b2_bucket: str = "replace_later"
-    b2_key_id: str = "replace_later"
-    b2_application_key: str = "replace_later"
+    b2_endpoint_url: str 
+    b2_region: str 
+    b2_bucket: str 
+    b2_key_id: str 
+    b2_application_key: str 
 
     master_encryption_key_base64: str
     jwt_secret_key: str = "change_this_secret"
