@@ -1,8 +1,10 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.templating import Jinja2Templates
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -14,10 +16,10 @@ from app.schemas import TokenRead, UserCreate, UserRead
 import time
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
+templates = Jinja2Templates(directory="app/templates")
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
@@ -81,7 +83,8 @@ def create_access_token(user: User) -> str:
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
     credentials_error = HTTPException(
@@ -89,6 +92,12 @@ def get_current_user(
         detail="Invalid or expired token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if token is None:
+        token = request.cookies.get("access_token")
+
+    if token is None:
+        raise credentials_error
 
     try:
         payload = jwt.decode(
@@ -185,3 +194,55 @@ def login_user(
 @router.get("/me", response_model=UserRead)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+@router.get("/login-page", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse(
+    request=request,
+    name="login.html",
+    context={"error": None},
+)
+
+
+@router.post("/login-web")
+def login_web(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.username == username).first()
+
+    if user is None or not verify_password(password, user.password_hash):
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={"error": None},
+        )
+
+    token = create_access_token(user)
+
+    response = RedirectResponse(
+        url="/files/dashboard",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+    )
+
+    return response
+
+
+@router.post("/logout")
+def logout():
+    response = RedirectResponse(
+        url="/auth/login-page",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+    response.delete_cookie("access_token")
+
+    return response

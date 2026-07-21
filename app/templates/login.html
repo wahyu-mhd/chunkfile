@@ -1,11 +1,36 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html>
+<head>
     <title>ChunkVault Login</title>
-  </head>
-  <body>
+</head>
+<body>
     <h1>ChunkVault</h1>
-  </body>
+    <h2>Login</h2>
+
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" action="/auth/login-web">
+        <div>
+            <label>Username</label><br>
+            <input type="text" name="username" required>
+        </div>
+
+        <br>
+
+        <div>
+            <label>Password</label><br>
+            <input type="password" name="password" required>
+        </div>
+
+        <br>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <p>
+        Register first using <code>/docs</code> → <code>POST /auth/register</code>.
+    </p>
+</body>
 </html>

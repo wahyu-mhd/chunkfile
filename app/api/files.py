@@ -3,8 +3,9 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from starlette.background import BackgroundTask
+from fastapi.templating import Jinja2Templates
 
 from sqlalchemy.orm import Session
 
@@ -20,9 +21,62 @@ from app.api.auth import get_current_user
 import time
 
 router = APIRouter(prefix="/files", tags=["files"])
-
+templates = Jinja2Templates(directory="app/templates")
 upload_attempts: dict[str, list[float]] = {}
 
+@router.get("/dashboard")
+def dashboard(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    files = (
+        db.query(StoredFile)
+        .filter(StoredFile.user_id == user.id)
+        .filter(StoredFile.status != "deleted")
+        .order_by(StoredFile.created_at.desc())
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={"files": files},
+    )
+
+@router.post("/dashboard/upload")
+def dashboard_upload_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    upload_file(
+        file=file,
+        db=db,
+        user=user,
+    )
+
+    return RedirectResponse(
+        url="/files/dashboard",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+@router.post("/{file_id}/delete")
+def delete_file_from_dashboard(
+    file_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    delete_file(
+        file_id=file_id,
+        db=db,
+        user=user,
+    )
+
+    return RedirectResponse(
+        url="/files/dashboard",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 def check_upload_rate_limit(user_id) -> None:
     now = time.time()
