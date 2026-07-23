@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     b2_application_key: str 
 
     master_encryption_key_base64: str
-    jwt_secret_key: str = "change_this_secret"
+    jwt_secret_key: str 
 
     model_config = SettingsConfigDict(
         env_file=".env",
