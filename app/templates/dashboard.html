@@ -1,70 +1,844 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ChunkVault Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard | ChunkVault</title>
+
+    <style>
+        :root {
+            --background: #f4f7fb;
+            --surface: #ffffff;
+            --surface-subtle: #f8fafc;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-soft: #eff6ff;
+            --text-primary: #172033;
+            --text-secondary: #667085;
+            --border: #dfe5ed;
+            --border-light: #edf0f4;
+            --success-background: #ecfdf3;
+            --success-text: #027a48;
+            --danger: #b42318;
+            --danger-hover: #912018;
+            --danger-background: #fff5f5;
+            --focus-ring: rgba(37, 99, 235, 0.18);
+            --shadow: 0 8px 25px rgba(15, 23, 42, 0.06);
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            min-width: 320px;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--background);
+            color: var(--text-primary);
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+            line-height: 1.5;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .topbar {
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.96);
+        }
+
+        .topbar-inner {
+            width: min(1180px, calc(100% - 40px));
+            min-height: 72px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            text-decoration: none;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 800;
+            box-shadow: 0 7px 16px rgba(37, 99, 235, 0.2);
+        }
+
+        .brand-name {
+            font-size: 19px;
+            font-weight: 750;
+            letter-spacing: -0.4px;
+        }
+
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .user-information {
+            text-align: right;
+        }
+
+        .user-label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .username {
+            display: block;
+            max-width: 220px;
+            overflow: hidden;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .logout-button {
+            min-height: 38px;
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: #344054;
+            font-size: 13px;
+            font-weight: 650;
+            cursor: pointer;
+            transition:
+                background 0.18s ease,
+                border-color 0.18s ease;
+        }
+
+        .logout-button:hover {
+            border-color: #c5ceda;
+            background: #f8fafc;
+        }
+
+        .logout-button:focus-visible,
+        .upload-button:focus-visible,
+        .download-link:focus-visible,
+        .delete-button:focus-visible,
+        .docs-link:focus-visible {
+            outline: 3px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        .page-container {
+            width: min(1180px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 38px 0 48px;
+        }
+
+        .page-heading {
+            margin-bottom: 26px;
+        }
+
+        .page-heading h1 {
+            margin: 0;
+            font-size: clamp(26px, 3vw, 34px);
+            letter-spacing: -0.8px;
+        }
+
+        .page-heading p {
+            margin: 7px 0 0;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .upload-panel {
+            margin-bottom: 28px;
+            padding: 24px;
+        }
+
+        .section-heading {
+            margin-bottom: 18px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            font-size: 19px;
+            letter-spacing: -0.3px;
+        }
+
+        .section-heading p {
+            margin: 5px 0 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .upload-form {
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .file-input-wrapper {
+            min-width: 0;
+            flex: 1;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            min-height: 48px;
+            padding: 7px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            outline: none;
+            background: var(--surface-subtle);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition:
+                border-color 0.18s ease,
+                box-shadow 0.18s ease,
+                background 0.18s ease;
+        }
+
+        input[type="file"]:hover {
+            border-color: #bbc5d2;
+            background: #ffffff;
+        }
+
+        input[type="file"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        input[type="file"]::file-selector-button {
+            min-height: 32px;
+            margin-right: 12px;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: #ffffff;
+            color: #344054;
+            font-weight: 650;
+            cursor: pointer;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #f2f4f7;
+        }
+
+        .upload-button {
+            min-width: 122px;
+            min-height: 48px;
+            padding: 10px 20px;
+            border: 0;
+            border-radius: 9px;
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 700;
+            cursor: pointer;
+            transition:
+                background 0.18s ease,
+                box-shadow 0.18s ease,
+                transform 0.18s ease;
+        }
+
+        .upload-button:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+        }
+
+        .upload-button:active {
+            transform: translateY(1px);
+        }
+
+        .files-panel {
+            overflow: hidden;
+        }
+
+        .files-panel-header {
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .files-panel-header h2 {
+            margin: 0;
+            font-size: 19px;
+            letter-spacing: -0.3px;
+        }
+
+        .files-panel-header p {
+            margin: 5px 0 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 15px 18px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+
+        th {
+            background: var(--surface-subtle);
+            color: #475467;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        td {
+            color: #475467;
+            font-size: 14px;
+        }
+
+        tbody tr {
+            transition: background 0.15s ease;
+        }
+
+        tbody tr:hover {
+            background: #fbfcfe;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .filename-cell {
+            min-width: 220px;
+        }
+
+        .filename {
+            display: block;
+            max-width: 350px;
+            overflow: hidden;
+            color: var(--text-primary);
+            font-weight: 650;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .size-cell,
+        .date-cell {
+            white-space: nowrap;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            max-width: 180px;
+            padding: 4px 9px;
+            overflow: hidden;
+            border: 1px solid #abefc6;
+            border-radius: 999px;
+            background: var(--success-background);
+            color: var(--success-text);
+            font-size: 12px;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .actions form {
+            margin: 0;
+        }
+
+        .download-link,
+        .delete-button {
+            min-height: 35px;
+            padding: 7px 11px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 650;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #bfdbfe;
+            background: var(--primary-soft);
+            color: var(--primary);
+            transition:
+                background 0.18s ease,
+                border-color 0.18s ease;
+        }
+
+        .download-link:hover {
+            border-color: #93c5fd;
+            background: #dbeafe;
+        }
+
+        .delete-button {
+            border: 1px solid #fecaca;
+            background: var(--danger-background);
+            color: var(--danger);
+            transition:
+                background 0.18s ease,
+                border-color 0.18s ease,
+                color 0.18s ease;
+        }
+
+        .delete-button:hover {
+            border-color: #fca5a5;
+            background: #fee2e2;
+            color: var(--danger-hover);
+        }
+
+        .empty-state {
+            padding: 64px 24px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 58px;
+            height: 58px;
+            margin: 0 auto 17px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #bfdbfe;
+            border-radius: 16px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 24px;
+            font-weight: 750;
+        }
+
+        .empty-state h3 {
+            margin: 0;
+            color: var(--text-primary);
+            font-size: 17px;
+        }
+
+        .empty-state p {
+            max-width: 430px;
+            margin: 7px auto 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .page-footer {
+            margin-top: 24px;
+            color: var(--text-secondary);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .docs-link {
+            color: var(--primary);
+            font-weight: 650;
+            text-decoration: none;
+        }
+
+        .docs-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 760px) {
+            .topbar-inner,
+            .page-container {
+                width: min(100% - 28px, 1180px);
+            }
+
+            .topbar-inner {
+                min-height: 66px;
+            }
+
+            .user-label {
+                display: none;
+            }
+
+            .username {
+                max-width: 115px;
+            }
+
+            .page-container {
+                padding-top: 28px;
+            }
+
+            .upload-panel {
+                padding: 20px;
+            }
+
+            .upload-form {
+                flex-direction: column;
+            }
+
+            .upload-button {
+                width: 100%;
+            }
+
+            .table-wrapper {
+                overflow: visible;
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+                white-space: nowrap;
+            }
+
+            tbody {
+                padding: 12px;
+            }
+
+            tbody tr {
+                margin-bottom: 12px;
+                padding: 15px;
+                border: 1px solid var(--border);
+                border-radius: 11px;
+                background: #ffffff;
+            }
+
+            tbody tr:last-child {
+                margin-bottom: 0;
+            }
+
+            tbody tr:hover {
+                background: #ffffff;
+            }
+
+            tbody tr:last-child td {
+                border-bottom: 1px solid var(--border-light);
+            }
+
+            td {
+                min-width: 0;
+                padding: 10px 0;
+                display: grid;
+                grid-template-columns: 105px minmax(0, 1fr);
+                align-items: start;
+                gap: 12px;
+                border-bottom: 1px solid var(--border-light);
+            }
+
+            td::before {
+                content: attr(data-label);
+                color: var(--text-secondary);
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.03em;
+                text-transform: uppercase;
+            }
+
+            td:last-child {
+                padding-bottom: 0;
+                border-bottom: 0;
+            }
+
+            .filename-cell {
+                min-width: 0;
+            }
+
+            .filename {
+                max-width: 100%;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
+            .size-cell,
+            .date-cell {
+                white-space: normal;
+            }
+
+            .actions-cell {
+                display: block;
+            }
+
+            .actions-cell::before {
+                display: block;
+                margin-bottom: 10px;
+            }
+
+            .actions {
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .actions form,
+            .download-link,
+            .delete-button {
+                width: 100%;
+            }
+
+            .download-link,
+            .delete-button {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .brand-name {
+                display: none;
+            }
+
+            .user-controls {
+                gap: 8px;
+            }
+
+            .username {
+                max-width: 100px;
+            }
+
+            .logout-button {
+                padding-inline: 11px;
+            }
+
+            .page-heading {
+                margin-bottom: 21px;
+            }
+
+            .files-panel-header {
+                padding: 20px;
+            }
+
+            td {
+                grid-template-columns: 86px minmax(0, 1fr);
+            }
+
+            .actions {
+                grid-template-columns: 1fr;
+            }
+
+            .empty-state {
+                padding: 50px 20px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <h1>ChunkVault Dashboard</h1>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/files/dashboard" aria-label="ChunkVault dashboard">
+                <span class="brand-mark" aria-hidden="true">CV</span>
+                <span class="brand-name">ChunkVault</span>
+            </a>
 
-    <p>Logged in as: <strong>{{ user.username }}</strong></p>
+            <div class="user-controls">
+                <div class="user-information">
+                    <span class="user-label">Signed in as</span>
+                    <span class="username" title="{{ user.username }}">
+                        {{ user.username }}
+                    </span>
+                </div>
 
-    <form method="post" action="/auth/logout">
-        <button type="submit">Logout</button>
-    </form>
+                <form method="post" action="/auth/logout">
+                    <button class="logout-button" type="submit">
+                        Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </header>
 
-    <hr>
+    <main class="page-container">
+        <section class="page-heading">
+            <h1>Your secure storage</h1>
+            <p>
+                Upload, manage, and retrieve your encrypted files.
+            </p>
+        </section>
 
-    <h2>Upload file</h2>
+        <section class="panel upload-panel" aria-labelledby="upload-heading">
+            <div class="section-heading">
+                <h2 id="upload-heading">Upload a file</h2>
+                <p>
+                    Choose a file to securely store in your ChunkVault.
+                </p>
+            </div>
 
-    <form method="post" action="/files/dashboard/upload" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <button type="submit">Upload</button>
-    </form>
+            <form
+                class="upload-form"
+                method="post"
+                action="/files/dashboard/upload"
+                enctype="multipart/form-data"
+            >
+                <div class="file-input-wrapper">
+                    <input
+                        id="file"
+                        type="file"
+                        name="file"
+                        aria-label="Choose a file to upload"
+                        required
+                    >
+                </div>
 
-    <hr>
+                <button class="upload-button" type="submit">
+                    Upload file
+                </button>
+            </form>
+        </section>
 
-    <h2>My Files</h2>
+        <section class="panel files-panel" aria-labelledby="files-heading">
+            <div class="files-panel-header">
+                <h2 id="files-heading">My files</h2>
+                <p>
+                    Files stored securely in your account.
+                </p>
+            </div>
 
-    {% if files %}
-        <table border="1" cellpadding="8">
-            <thead>
-                <tr>
-                    <th>Filename</th>
-                    <th>Size</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Download</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
+            {% if files %}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Filename</th>
+                                <th scope="col">Size</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
 
-            <tbody>
-                {% for file in files %}
-                    <tr>
-                        <td>{{ file.original_filename }}</td>
-                        <td>{{ file.size_bytes }} bytes</td>
-                        <td>{{ file.status }}</td>
-                        <td>{{ file.created_at }}</td>
-                        <td>
-                            <a href="/files/{{ file.id }}/download">Download</a>
-                        </td>
-                        <td>
-                            <form method="post" action="/files/{{ file.id }}/delete">
-                                <button type="submit">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No files uploaded yet.</p>
-    {% endif %}
+                        <tbody>
+                            {% for file in files %}
+                                <tr>
+                                    <td class="filename-cell" data-label="Filename">
+                                        <span
+                                            class="filename"
+                                            title="{{ file.original_filename }}"
+                                        >
+                                            {{ file.original_filename }}
+                                        </span>
+                                    </td>
 
-    <hr>
+                                    <td class="size-cell" data-label="Size">
+                                        {{ file.size_bytes }} bytes
+                                    </td>
 
-    <p>
-        API docs: <a href="/docs">/docs</a>
-    </p>
+                                    <td data-label="Status">
+                                        <span class="status-badge">
+                                            {{ file.status }}
+                                        </span>
+                                    </td>
+
+                                    <td class="date-cell" data-label="Created">
+                                        {{ file.created_at }}
+                                    </td>
+
+                                    <td class="actions-cell" data-label="Actions">
+                                        <div class="actions">
+                                            <a
+                                                class="download-link"
+                                                href="/files/{{ file.id }}/download"
+                                            >
+                                                Download
+                                            </a>
+
+                                            <form
+                                                method="post"
+                                                action="/files/{{ file.id }}/delete"
+                                            >
+                                                <button
+                                                    class="delete-button"
+                                                    type="submit"
+                                                    aria-label="Delete {{ file.original_filename }}"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon" aria-hidden="true">+</div>
+
+                    <h3>No files uploaded yet</h3>
+
+                    <p>
+                        Upload your first file using the form above.
+                        It will appear here once it has been securely stored.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+        <footer class="page-footer">
+            Developer tools are available in the
+            <a class="docs-link" href="/docs">API documentation</a>.
+        </footer>
+    </main>
 </body>
 </html>

@@ -1,36 +1,304 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>ChunkVault Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Login | ChunkVault</title>
+
+    <style>
+        :root {
+            --background: #f4f7fb;
+            --surface: #ffffff;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-primary: #172033;
+            --text-secondary: #667085;
+            --border: #d9e0ea;
+            --input-background: #ffffff;
+            --error-background: #fff1f2;
+            --error-border: #fecdd3;
+            --error-text: #b42318;
+            --focus-ring: rgba(37, 99, 235, 0.18);
+            --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(37, 99, 235, 0.08),
+                    transparent 34%
+                ),
+                var(--background);
+            color: var(--text-primary);
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+            line-height: 1.5;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .brand {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .brand-mark {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            background: var(--primary);
+            color: #ffffff;
+            font-size: 23px;
+            font-weight: 800;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.24);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 30px;
+            letter-spacing: -0.8px;
+        }
+
+        .brand p {
+            margin: 7px 0 0;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .login-card {
+            padding: 30px;
+            border: 1px solid rgba(217, 224, 234, 0.9);
+            border-radius: var(--radius);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .login-card h2 {
+            margin: 0;
+            font-size: 21px;
+            letter-spacing: -0.3px;
+        }
+
+        .login-description {
+            margin: 6px 0 24px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .error-message {
+            margin: 0 0 20px;
+            padding: 12px 14px;
+            border: 1px solid var(--error-border);
+            border-radius: 9px;
+            background: var(--error-background);
+            color: var(--error-text);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            color: #344054;
+            font-size: 14px;
+            font-weight: 650;
+        }
+
+        input {
+            width: 100%;
+            min-height: 46px;
+            padding: 11px 13px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            outline: none;
+            background: var(--input-background);
+            color: var(--text-primary);
+            font: inherit;
+            transition:
+                border-color 0.18s ease,
+                box-shadow 0.18s ease;
+        }
+
+        input::placeholder {
+            color: #98a2b3;
+        }
+
+        input:hover {
+            border-color: #b7c0cf;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        .login-button {
+            width: 100%;
+            min-height: 46px;
+            margin-top: 4px;
+            border: 0;
+            border-radius: 9px;
+            background: var(--primary);
+            color: #ffffff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition:
+                background 0.18s ease,
+                transform 0.18s ease,
+                box-shadow 0.18s ease;
+        }
+
+        .login-button:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
+        }
+
+        .login-button:active {
+            transform: translateY(1px);
+        }
+
+        .login-button:focus-visible {
+            outline: 3px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        .registration-note {
+            margin: 22px 0 0;
+            padding-top: 20px;
+            border-top: 1px solid #edf0f5;
+            color: var(--text-secondary);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .registration-note a {
+            color: var(--primary);
+            font-weight: 650;
+            text-decoration: none;
+        }
+
+        .registration-note a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            padding: 2px 5px;
+            border-radius: 5px;
+            background: #f2f4f7;
+            color: #344054;
+            font-size: 12px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                align-items: flex-start;
+                padding: 48px 16px 24px;
+            }
+
+            .login-card {
+                padding: 24px 20px;
+            }
+
+            .brand h1 {
+                font-size: 27px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <h1>ChunkVault</h1>
-    <h2>Login</h2>
+    <main class="login-container">
+        <header class="brand">
+            <div class="brand-mark" aria-hidden="true">CV</div>
+            <h1>ChunkVault</h1>
+            <p>Secure encrypted file storage</p>
+        </header>
 
-    {% if error %}
-        <p style="color: red;">{{ error }}</p>
-    {% endif %}
+        <section class="login-card" aria-labelledby="login-heading">
+            <h2 id="login-heading">Welcome back</h2>
+            <p class="login-description">
+                Sign in to access your encrypted files.
+            </p>
 
-    <form method="post" action="/auth/login-web">
-        <div>
-            <label>Username</label><br>
-            <input type="text" name="username" required>
-        </div>
+            {% if error %}
+                <div class="error-message" role="alert">
+                    {{ error }}
+                </div>
+            {% endif %}
 
-        <br>
+            <form method="post" action="/auth/login-web">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input
+                        id="username"
+                        type="text"
+                        name="username"
+                        placeholder="Enter your username"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
 
-        <div>
-            <label>Password</label><br>
-            <input type="password" name="password" required>
-        </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
 
-        <br>
+                <button class="login-button" type="submit">
+                    Sign in
+                </button>
+            </form>
 
-        <button type="submit">Login</button>
-    </form>
-
-    <p>
-        Register first using <code>/docs</code> → <code>POST /auth/register</code>.
-    </p>
+            <p class="registration-note">
+                Need an account?
+                Register through the
+                <a href="/docs">API documentation</a>
+                using <code>POST /auth/register</code>.
+            </p>
+        </section>
+    </main>
 </body>
 </html>

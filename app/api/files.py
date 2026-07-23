@@ -41,7 +41,7 @@ def dashboard(
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
-        context={"files": files},
+        context={"files": files, "user": user},
     )
 
 @router.post("/dashboard/upload")

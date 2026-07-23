@@ -216,7 +216,7 @@ def login_web(
         return templates.TemplateResponse(
             request=request,
             name="login.html",
-            context={"error": None},
+            context={"error": "Invalid username or password"},
         )
 
     token = create_access_token(user)
